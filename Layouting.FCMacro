@@ -1,0 +1,67 @@
+import FreeCAD
+
+doc = FreeCAD.ActiveDocument
+
+def isLink(o):
+  return o.TypeId == 'App::Link'
+
+def isPart(o):
+  return o.TypeId == 'PartDesign::Body'
+
+def getRoot(o):
+  root = o
+  
+  while isLink(root):
+   root = root.LinkedObject
+  
+  return root
+
+def getParts():
+  parts = {}
+  
+  for o in FreeCAD.ActiveDocument.Objects:
+    root = getRoot(o)
+    
+    if not isPart(root):
+      continue
+    
+    if root in parts:
+      parts[root] += 1
+    else:
+      parts[root] = 1
+  
+  return parts
+
+class LayoutPage:
+  def __init__(self):
+    template = doc.addObject('TechDraw::DrawSVGTemplate', 'LayoutTemplate')
+    template.Template = "C:/Meine Daten/programs/freecad/data/Mod/TechDraw/Templates/A4_Portrait_blank.svg"
+    self.page = doc.addObject('TechDraw::DrawPage', 'Layout')
+    self.page.Template = template
+  
+  def addView(self, part):
+    view = doc.addObject('TechDraw::DrawViewPart', part.Label + '_View')
+    self.page.addView(view)
+    
+    view.XSource = part
+    view.Direction = FreeCAD.Vector(0,0,1)
+    view.XDirection = FreeCAD.Vector(0,0,1)
+  
+    view.ViewObject.LineWidth = '0.2 mm'
+    
+    view.recompute()
+
+    return view
+
+# Start of script
+parts = getParts()
+#sheet = FreeCAD.ActiveDocument.addObject('Spreadsheet::Sheet', 'Materialliste')
+page = LayoutPage()
+
+print(parts)
+
+for part, count in parts.items():
+  for i in range(count):
+    page.addView(part)
+
+page.page.KeepUpdated = False

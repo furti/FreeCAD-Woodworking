@@ -1,0 +1,9 @@
+import FreeCAD
+import FreeCADGui
+
+selection = FreeCADGui.Selection.getSelection()
+first = selection[0]
+others = selection[1:]
+
+for o in others:
+  o.Placement.Rotation = first.Placement.Rotation

@@ -1,0 +1,88 @@
+# -*- coding: utf-8 -*-
+import FreeCAD
+import PartDesign
+import PartDesignGui
+import Sketcher
+
+print('hi')
+# 1. Setup stuff
+document = FreeCAD.ActiveDocument
+guidoc = Gui.ActiveDocument
+selectedFace = FreeCADGui.Selection.getSelectionEx()[0].SubObjects[0]
+normal = selectedFace.normalAt(0.5, 0.5)
+
+# 0 -> North, 1 -> East, 2 -> South, 3 -> West
+direction = 0
+
+if normal.x == 1:
+  direction = 1
+elif normal.x == -1:
+  direction = 3
+elif normal.y == -1:
+  direction = 2
+
+print(direction)
+
+#1. Create Object
+body = document.getObject('Body')
+tip = body.Tip
+body.newObject('Sketcher::SketchObject', 'Fraesung_Sketch')
+sketch = document.ActiveObject
+
+sketch.Support = (document.getObject('XY_Plane'),[''])
+sketch.MapMode = 'FlatFace'
+document.recompute()
+
+# 2. Customize Sketch
+guidoc.setEdit(body, 0, sketch.Name)
+
+geoList = []
+geoList.append(Part.LineSegment(App.Vector(0, 0, 0),App.Vector(1000, 0, 0)))
+geoList.append(Part.LineSegment(App.Vector(1000, 0, 0),App.Vector(1000,1000, 0)))
+geoList.append(Part.LineSegment(App.Vector(1000,1000, 0),App.Vector(0,1000, 0)))
+geoList.append(Part.LineSegment(App.Vector(0,1000, 0),App.Vector(0, 0, 0)))
+sketch.addGeometry(geoList,False)
+
+conList = []
+conList.append(Sketcher.Constraint('Coincident',0,2,1,1))
+conList.append(Sketcher.Constraint('Coincident',1,2,2,1))
+conList.append(Sketcher.Constraint('Coincident',2,2,3,1))
+conList.append(Sketcher.Constraint('Coincident',3,2,0,1))
+conList.append(Sketcher.Constraint('Horizontal',0))
+conList.append(Sketcher.Constraint('Horizontal',2))
+conList.append(Sketcher.Constraint('Vertical',1))
+conList.append(Sketcher.Constraint('Vertical',3))
+sketch.addConstraint(conList)
+
+sketch.addConstraint(Sketcher.Constraint('Coincident',0,1,-1,1)) 
+sketch.addConstraint(Sketcher.Constraint('DistanceY',0,1,2,2,1000)) 
+sketch.setDatum(9,App.Units.Quantity('1000 mm'))
+sketch.renameConstraint(9, u'Breite')
+sketch.addConstraint(Sketcher.Constraint('DistanceX',0,1,0,2,1000)) 
+sketch.setDatum(10,App.Units.Quantity('1000 mm'))
+sketch.renameConstraint(10, u'Laenge')
+guidoc.resetEdit()
+document.recompute()
+
+# 3. Create Pocket
+body.newObject('PartDesign::Pocket','Fraesung')
+pocket = document.ActiveObject
+pocket.Profile = sketch
+pocket.Length = 5.0
+sketch.Visibility = False
+tip.Visibility = False
+
+sketch.setExpression('.AttachmentOffset.Base.z', u'Pad.Length')
+
+if direction == 0:
+  sketch.setExpression('.Constraints.Laenge', u'Sketch.Constraints.Laenge')
+  sketch.setExpression('.AttachmentOffset.Base.y', u'Sketch.Constraints.Breite - .Constraints.Breite')
+elif direction == 1:
+  sketch.setExpression('.Constraints.Breite', u'Sketch.Constraints.Breite')
+  sketch.setExpression('.AttachmentOffset.Base.x', u'Sketch.Constraints.Laenge - .Constraints.Laenge')
+elif direction == 2:
+  sketch.setExpression('.Constraints.Laenge', u'Sketch.Constraints.Laenge')
+elif direction == 3:
+  sketch.setExpression('.Constraints.Breite', u'Sketch.Constraints.Breite')
+
+document.recompute()

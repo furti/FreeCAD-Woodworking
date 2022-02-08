@@ -1,0 +1,28 @@
+import FreeCAD
+import FreeCADGui
+
+expressionName = '.Placement.Base.x';
+
+def getExpression(o):
+  if o.ExpressionEngine is None:
+    return None
+  
+  for name, value in o.ExpressionEngine:
+    if name == expressionName:
+      return value
+  
+  return None
+	
+
+selection = FreeCADGui.Selection.getSelection()
+first = selection[0]
+others = selection[1:]
+
+expression = getExpression(first)
+
+for o in others:
+  if expression is None:
+    o.Placement.Base.y = first.Placement.Base.y
+  else:
+    o.setExpression(expressionName, expression)
+      
