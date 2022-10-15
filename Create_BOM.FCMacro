@@ -20,6 +20,47 @@ def getRoot(o):
   
   return root
 
+def findMatchingBody(body, existingBodies):
+  if body in existingBodies:
+    return body
+  
+  bodyShape = body.Shape
+  bodyBoundBox = bodyShape.BoundBox
+
+  # We compare certain properties of both the shapes. If they match, we can be pretty sure, that both objects are equal
+  for existingBody in existingBodies:
+    existingShape = existingBody.Shape
+
+    # Volume
+    if round(existingShape.Volume, 3) != round(bodyShape.Volume, 3):
+      continue
+    
+    # Bounding Box -> Length, Thickness, Width
+    existingBoundBox = existingShape.BoundBox
+    if round(existingBoundBox.XLength, 3) != round(bodyBoundBox.XLength, 3):
+      continue
+    
+    if round(existingBoundBox.YLength, 3) != round(bodyBoundBox.YLength, 3):
+      continue
+    
+    if round(existingBoundBox.ZLength, 3) != round(bodyBoundBox.ZLength, 3):
+      continue
+
+    # Center Of Mass
+    if not existingShape.CenterOfMass.normalize().isEqual(bodyShape.CenterOfMass.normalize(), 5):
+      continue
+    
+    # Geometry
+    if len(existingShape.Edges) != len(bodyShape.Edges):
+      continue
+    
+    if len(existingShape.Faces) != len(bodyShape.Faces):
+      continue
+
+    return existingBody
+
+  return None
+
 def getBodies():
   bodies = {}
   part = FreeCAD.ActiveDocument.findObjects('App::Part')[0]
@@ -29,12 +70,14 @@ def getBodies():
     
     if not isBody(root):
       continue
-    
-    if root in bodies:
-      bodies[root] += 1
-    else:
+
+    matchingBody = findMatchingBody(root, bodies)
+
+    if matchingBody is None:
       bodies[root] = 1
-  
+    else:
+      bodies[matchingBody] += 1
+    
   return bodies
 
 def getDimensions(body):
