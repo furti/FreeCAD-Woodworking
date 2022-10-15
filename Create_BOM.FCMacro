@@ -9,7 +9,7 @@ cellSize = 60
 def isLink(o):
   return o.TypeId == 'App::Link'
 
-def isPart(o):
+def isBody(o):
   return o.TypeId == 'PartDesign::Body'
 
 def getRoot(o):
@@ -20,24 +20,25 @@ def getRoot(o):
   
   return root
 
-def getParts():
-  parts = {}
+def getBodies():
+  bodies = {}
+  part = FreeCAD.ActiveDocument.findObjects('App::Part')[0]
   
-  for o in FreeCAD.ActiveDocument.Objects:
+  for o in part.Group:
     root = getRoot(o)
     
-    if not isPart(root):
+    if not isBody(root):
       continue
     
-    if root in parts:
-      parts[root] += 1
+    if root in bodies:
+      bodies[root] += 1
     else:
-      parts[root] = 1
+      bodies[root] = 1
   
-  return parts
+  return bodies
 
-def getDimensions(part):
-  bb = part.Shape.BoundBox
+def getDimensions(body):
+  bb = body.Shape.BoundBox
   
   return (bb.XLength, bb.YLength, bb.ZLength)
 
@@ -55,22 +56,22 @@ class BomPage:
     self.column = 0
     self.row = 0
   
-  def addView(self, partData):
-    part = partData[0]
-    count = partData[1]
+  def addView(self, bodyData):
+    body = bodyData[0]
+    count = bodyData[1]
     
-    dimensions = getDimensions(part)
-    view = self.createView(part, dimensions)
+    dimensions = getDimensions(body)
+    view = self.createView(body, dimensions)
     cellDimensions = self.nextCellDimensions()
     self.alignView(view, cellDimensions)
-    self.printInfo(part, cellDimensions, dimensions)
-    self.printCount(part, count, cellDimensions)
+    self.printInfo(body, cellDimensions, dimensions)
+    self.printCount(body, count, cellDimensions)
   
-  def createView(self, part, dimensions):
-    view = doc.addObject('TechDraw::DrawViewPart', part.Label + '_View')
+  def createView(self, body, dimensions):
+    view = doc.addObject('TechDraw::DrawViewPart', body.Label + '_View')
     self.page.addView(view)
     
-    view.XSource = part
+    view.XSource = body
     view.Direction = FreeCAD.Vector(0.577,-0.577,0.577)
     view.XDirection = FreeCAD.Vector(1,0,0)
   
@@ -91,18 +92,18 @@ class BomPage:
     
     view.recompute()
   
-  def printInfo(self, part, cellDimensions, partDimensions):
+  def printInfo(self, body, cellDimensions, dimensions):
     text = []
     
-    if hasattr(part, 'Typ'):
-      text.append(part.Typ)
+    if hasattr(body, 'Typ'):
+      text.append(body.Typ)
     
-    text.append('{} mm x {} mm x {} mm'.format(partDimensions[0], partDimensions[1], partDimensions[2]))
+    text.append('{} mm x {} mm x {} mm'.format(dimensions[0], dimensions[1], dimensions[2]))
 
-    if hasattr(part, 'Url'):
-      text.append(part.Url)
+    if hasattr(body, 'Url'):
+      text.append(body.Url)
 
-    annotation = doc.addObject('TechDraw::DrawViewAnnotation', part.Label + '_Text')
+    annotation = doc.addObject('TechDraw::DrawViewAnnotation', body.Label + '_Text')
     self.page.addView(annotation)
 
     annotation.TextSize = '3 mm'
@@ -113,10 +114,10 @@ class BomPage:
     
     doc.recompute()
 
-  def printCount(self, part, count, cellDimensions):
+  def printCount(self, body, count, cellDimensions):
     text = ['x {}'.format(count)]
     
-    annotation = doc.addObject('TechDraw::DrawViewAnnotation', part.Label + '_Count')
+    annotation = doc.addObject('TechDraw::DrawViewAnnotation', body.Label + '_Count')
     self.page.addView(annotation)
 
     annotation.TextSize = '5 mm'
@@ -149,14 +150,14 @@ class BomPage:
       self.row += 1
 
 # Start of script
-parts = getParts()
+bodies = getBodies()
 #sheet = FreeCAD.ActiveDocument.addObject('Spreadsheet::Sheet', 'Materialliste')
 page = BomPage()
 
-print(parts)
+print(bodies)
 
-for partData in parts.items():
-  page.addView(partData)
+for bodyData in bodies.items():
+  page.addView(bodyData)
 
 page.page.KeepUpdated = False
   
