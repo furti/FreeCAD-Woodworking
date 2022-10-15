@@ -65,6 +65,19 @@ pad = doc.getObject('Pad')
 pad.Profile = sketch
 pad.Length = 10.0
 
+# Set general properties
+body.addProperty("App::PropertyString", "Typ", "Info", "Typ")
+body.addProperty("App::PropertyString", "Url", "Info", "Url")
+body.addProperty("App::PropertyLength", "Breite", "Info", "Breite")
+body.addProperty("App::PropertyLength", "Laenge", "Info", "Laenge")
+body.addProperty("App::PropertyLength", "Staerke", "Info", "Staerke")
+
+body.setExpression('Breite', u'Sketch.Constraints.Breite')
+body.setExpression('Laenge', u'Sketch.Constraints.Laenge')
+body.setExpression('Staerke', u'Pad.Length')
+
+body.ViewObject.DisplayModeBody = 'Tip'
+
 doc.recompute()
 sketch.Visibility = False
 doc.recompute()
