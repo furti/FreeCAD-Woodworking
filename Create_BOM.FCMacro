@@ -20,47 +20,6 @@ def getRoot(o):
   
   return root
 
-def findMatchingBody(body, existingBodies):
-  if body in existingBodies:
-    return body
-  
-  bodyShape = body.Shape
-  bodyBoundBox = bodyShape.BoundBox
-
-  # We compare certain properties of both the shapes. If they match, we can be pretty sure, that both objects are equal
-  for existingBody in existingBodies:
-    existingShape = existingBody.Shape
-
-    # Volume
-    if round(existingShape.Volume, 3) != round(bodyShape.Volume, 3):
-      continue
-    
-    # Bounding Box -> Length, Thickness, Width
-    existingBoundBox = existingShape.BoundBox
-    if round(existingBoundBox.XLength, 3) != round(bodyBoundBox.XLength, 3):
-      continue
-    
-    if round(existingBoundBox.YLength, 3) != round(bodyBoundBox.YLength, 3):
-      continue
-    
-    if round(existingBoundBox.ZLength, 3) != round(bodyBoundBox.ZLength, 3):
-      continue
-
-    # Center Of Mass
-    if not existingShape.CenterOfMass.normalize().isEqual(bodyShape.CenterOfMass.normalize(), 5):
-      continue
-    
-    # Geometry
-    if len(existingShape.Edges) != len(bodyShape.Edges):
-      continue
-    
-    if len(existingShape.Faces) != len(bodyShape.Faces):
-      continue
-
-    return existingBody
-
-  return None
-
 def getBodies():
   bodies = {}
   part = FreeCAD.ActiveDocument.findObjects('App::Part')[0]
@@ -71,14 +30,14 @@ def getBodies():
     if not isBody(root):
       continue
 
-    matchingBody = findMatchingBody(root, bodies)
+    name = root.Planname
 
-    if matchingBody is None:
-      bodies[root] = 1
+    if name in bodies:
+      bodies[name]["count"] += 1
     else:
-      bodies[matchingBody] += 1
+      bodies[name] = {"name": name, "body": root, "count": 1}
     
-  return bodies
+  return dict(sorted(bodies.items()))
 
 def getDimensions(body):
   bb = body.Shape.BoundBox
@@ -100,15 +59,16 @@ class BomPage:
     self.row = 0
   
   def addView(self, bodyData):
-    body = bodyData[0]
-    count = bodyData[1]
-    
+    body = bodyData['body']
+    count = bodyData['count']
+    name = bodyData['name']
+
     dimensions = getDimensions(body)
     view = self.createView(body, dimensions)
     cellDimensions = self.nextCellDimensions()
     self.alignView(view, cellDimensions)
     self.printInfo(body, cellDimensions, dimensions)
-    self.printCount(body, count, cellDimensions)
+    self.printCountAndName(body, count, name, cellDimensions)
   
   def createView(self, body, dimensions):
     view = doc.addObject('TechDraw::DrawViewPart', body.Label + '_View')
@@ -157,17 +117,27 @@ class BomPage:
     
     doc.recompute()
 
-  def printCount(self, body, count, cellDimensions):
+  def printCountAndName(self, body, count, name, cellDimensions):
     text = ['x {}'.format(count)]
     
-    annotation = doc.addObject('TechDraw::DrawViewAnnotation', body.Label + '_Count')
-    self.page.addView(annotation)
+    nameAnnotation = doc.addObject('TechDraw::DrawViewAnnotation', body.Label + '_Name')
+    self.page.addView(nameAnnotation)
 
-    annotation.TextSize = '5 mm'
-    annotation.MaxWidth = '20 mm'
-    annotation.X = '{} mm'.format(cellDimensions[0] + 20)
-    annotation.Y = '{} mm'.format(cellDimensions[1] - objectSize / 2)
-    annotation.Text = text
+    nameAnnotation.TextSize = '5 mm'
+    nameAnnotation.MaxWidth = '20 mm'
+    nameAnnotation.X = '{} mm'.format(cellDimensions[0] + 20)
+    nameAnnotation.Y = '{} mm'.format(cellDimensions[1] - objectSize / 2)
+    nameAnnotation.Text = name
+    nameAnnotation.TextStyle = "Bold"
+
+    countAnnotation = doc.addObject('TechDraw::DrawViewAnnotation', body.Label + '_Count')
+    self.page.addView(countAnnotation)
+
+    countAnnotation.TextSize = '5 mm'
+    countAnnotation.MaxWidth = '20 mm'
+    countAnnotation.X = '{} mm'.format(cellDimensions[0] + 20)
+    countAnnotation.Y = '{} mm'.format(cellDimensions[1] - objectSize / 2 - 5)
+    countAnnotation.Text = text
     
     doc.recompute()
   
@@ -199,7 +169,7 @@ page = BomPage()
 
 print(bodies)
 
-for bodyData in bodies.items():
+for bodyData in bodies.values():
   page.addView(bodyData)
 
 page.page.KeepUpdated = False
