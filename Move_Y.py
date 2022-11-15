@@ -1,0 +1,19 @@
+import FreeCAD
+import FreeCADGui
+
+selection = FreeCADGui.Selection.getSelection()
+selectionEx = FreeCADGui.Selection.getSelectionEx()
+toMove = selection[0]
+
+fromFace = None
+toFace = selectionEx[-1].SubObjects[0]
+
+if(len(selectionEx) == 2):
+    fromFace = selectionEx[0].SubObjects[0]
+else:
+    fromFace = selectionEx[1].SubObjects[0]
+
+distanceToMove = FreeCAD.Vector(
+    0, (toFace.CenterOfMass - fromFace.CenterOfMass).y, 0)
+
+toMove.Placement.Base = toMove.Placement.Base.add(distanceToMove)
