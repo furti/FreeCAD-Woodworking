@@ -76,6 +76,9 @@ body.setExpression('Breite', u'Sketch.Constraints.Breite')
 body.setExpression('Laenge', u'Sketch.Constraints.Laenge')
 body.setExpression('Staerke', u'Pad.Length')
 
+# Set drawing properties
+body.addProperty("App::PropertyStringList", "Schnittliste_Ansichten", "Drawing", "Schnittliste_Ansichten")
+
 body.ViewObject.DisplayModeBody = 'Tip'
 
 doc.recompute()
