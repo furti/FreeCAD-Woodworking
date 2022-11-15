@@ -32,10 +32,8 @@ def getBodies():
 
     name = root.Planname
 
-    if name in bodies:
-      bodies[name]["count"] += 1
-    else:
-      bodies[name] = {"name": name, "body": root, "count": 1}
+    if not name in bodies:
+      bodies[name] = {"name": name, "body": root}
     
   return dict(sorted(bodies.items()))
 
@@ -52,7 +50,8 @@ def calculateScale(dimensions):
 class BomPage:
   def __init__(self):
     template = doc.addObject('TechDraw::DrawSVGTemplate', 'BOMTemplate')
-    template.Template = "C:/Meine Daten/programs/freecad/data/Mod/TechDraw/Templates/A4_Portrait_blank.svg"
+    template.Template = FreeCAD.getHomePath(
+        ) + "/data/Mod/TechDraw/Templates/A4_Portrait_blank.svg"
     self.page = doc.addObject('TechDraw::DrawPage', 'BOM')
     self.page.Template = template
     self.column = 0
@@ -60,7 +59,6 @@ class BomPage:
   
   def addView(self, bodyData):
     body = bodyData['body']
-    count = bodyData['count']
     name = bodyData['name']
 
     dimensions = getDimensions(body)
@@ -68,7 +66,7 @@ class BomPage:
     cellDimensions = self.nextCellDimensions()
     self.alignView(view, cellDimensions)
     self.printInfo(body, cellDimensions, dimensions)
-    self.printCountAndName(body, count, name, cellDimensions)
+    self.printCountAndName(body, name, cellDimensions)
   
   def createView(self, body, dimensions):
     view = doc.addObject('TechDraw::DrawViewPart', body.Label + '_View')
@@ -117,8 +115,8 @@ class BomPage:
     
     doc.recompute()
 
-  def printCountAndName(self, body, count, name, cellDimensions):
-    text = ['x {}'.format(count)]
+  def printCountAndName(self, body, name, cellDimensions):
+    text = ['x {}'.format(body.Anzahl)]
     
     nameAnnotation = doc.addObject('TechDraw::DrawViewAnnotation', body.Label + '_Name')
     self.page.addView(nameAnnotation)

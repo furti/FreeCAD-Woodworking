@@ -104,7 +104,11 @@ def nameBodies(groups):
       if not 'Planname' in body.PropertiesList:
         body.addProperty("App::PropertyString", "Planname", "Info", "Name des Teils in Plänen")
       
+      if not 'Anzahl' in body.PropertiesList:
+        body.addProperty("App::PropertyInteger", "Anzahl", "Info", "Die Menge der Teile die benötigt werden")
+      
       body.Planname = name
+      body.Anzahl = len(group)
 
 # Start of script
 bodies = getBodies()
