@@ -189,4 +189,4 @@ body = doc.findObjects('PartDesign::Body')[0]
 page = CutPage(body)
 page.addOverview()
 page.addViews(body.Schnittliste_Ansichten)
-page.page.KeepUpdated = False
+page.page.KeepUpdated = True
