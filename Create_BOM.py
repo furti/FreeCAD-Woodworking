@@ -20,9 +20,8 @@ def getRoot(o):
   
   return root
 
-def getBodies():
+def getBodies(part):
   bodies = {}
-  part = FreeCAD.ActiveDocument.findObjects('App::Part')[0]
   
   for o in part.Group:
     root = getRoot(o)
@@ -40,7 +39,7 @@ def getBodies():
 def getDimensions(body):
   bb = body.Shape.BoundBox
   
-  return (bb.XLength, bb.YLength, bb.ZLength)
+  return (round(bb.XLength, 1), round(bb.YLength, 1), round(bb.ZLength, 1))
 
 def calculateScale(dimensions):
   biggestLength = max(dimensions)
@@ -48,11 +47,11 @@ def calculateScale(dimensions):
   return objectSize / biggestLength
 
 class BomPage:
-  def __init__(self):
-    template = doc.addObject('TechDraw::DrawSVGTemplate', 'BOMTemplate')
+  def __init__(self, name):
+    template = doc.addObject('TechDraw::DrawSVGTemplate', 'BOMTemplate_' + name)
     template.Template = FreeCAD.getHomePath(
         ) + "/data/Mod/TechDraw/Templates/A4_Portrait_blank.svg"
-    self.page = doc.addObject('TechDraw::DrawPage', 'BOM')
+    self.page = doc.addObject('TechDraw::DrawPage', 'BOM_' + name)
     self.page.Template = template
     self.column = 0
     self.row = 0
@@ -108,7 +107,7 @@ class BomPage:
     self.page.addView(annotation)
 
     annotation.TextSize = '3 mm'
-    annotation.MaxWidth = '58 mm'
+    annotation.MaxWidth = 58
     annotation.X = '{} mm'.format(cellDimensions[0])
     annotation.Y = '{} mm'.format(cellDimensions[1] - objectSize - 10)
     annotation.Text = text
@@ -122,7 +121,7 @@ class BomPage:
     self.page.addView(nameAnnotation)
 
     nameAnnotation.TextSize = '5 mm'
-    nameAnnotation.MaxWidth = '20 mm'
+    nameAnnotation.MaxWidth = 20
     nameAnnotation.X = '{} mm'.format(cellDimensions[0] + 20)
     nameAnnotation.Y = '{} mm'.format(cellDimensions[1] - objectSize / 2)
     nameAnnotation.Text = name
@@ -132,7 +131,7 @@ class BomPage:
     self.page.addView(countAnnotation)
 
     countAnnotation.TextSize = '5 mm'
-    countAnnotation.MaxWidth = '20 mm'
+    countAnnotation.MaxWidth = 20
     countAnnotation.X = '{} mm'.format(cellDimensions[0] + 20)
     countAnnotation.Y = '{} mm'.format(cellDimensions[1] - objectSize / 2 - 5)
     countAnnotation.Text = text
@@ -161,16 +160,19 @@ class BomPage:
       self.row += 1
 
 # Start of script
-bodies = getBodies()
-#sheet = FreeCAD.ActiveDocument.addObject('Spreadsheet::Sheet', 'Materialliste')
-page = BomPage()
+parts = FreeCAD.ActiveDocument.findObjects('App::Part')
+for part in parts:
+  bodies = getBodies(part)
 
-print(bodies)
-
-for bodyData in bodies.values():
-  page.addView(bodyData)
-
-page.page.KeepUpdated = False
+  if len(bodies) == 0:
+    continue
   
-#  typ = part.Typ
-#  url = part.Url
+  #sheet = FreeCAD.ActiveDocument.addObject('Spreadsheet::Sheet', 'Materialliste')
+  page = BomPage(part.Label)
+  
+  for bodyData in bodies.values():
+    page.addView(bodyData)
+  
+  page.page.KeepUpdated = False
+  #  typ = part.Typ
+  #  url = part.Url

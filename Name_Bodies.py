@@ -73,9 +73,8 @@ def findMatchingBody(body, existingBodies):
 
   return None
 
-def getBodies():
+def getBodies(part):
   bodies = []
-  part = doc.findObjects('App::Part')[0]
   roots = [getRoot(entry) for entry in part.Group]
   bodies = [root for root in roots if isBody(root)]
 
@@ -111,7 +110,9 @@ def nameBodies(groups):
       body.Anzahl = len(group)
 
 # Start of script
-bodies = getBodies()
-groupedBodies = groupBodies(bodies)
-nameBodies(groupedBodies)
+parts = doc.findObjects('App::Part')
+for part in parts:
+	bodies = getBodies(part)
+	groupedBodies = groupBodies(bodies)
+	nameBodies(groupedBodies)
 
