@@ -1,7 +1,6 @@
 import FreeCAD
 import math
 
-doc = FreeCAD.ActiveDocument
 # objectSize = 20
 # textSize = 58
 # pageHeight = 297
@@ -20,8 +19,38 @@ leftConfig = {"dir": (FreeCAD.Vector(-1, 0, 0),
                       FreeCAD.Vector(0, -1, 0)), "cell": None}
 frontConfig = {"dir": (FreeCAD.Vector(0, -1, 0),
                        FreeCAD.Vector(1, 0, 0)), "cell": None}
+backConfig = {"dir": (FreeCAD.Vector(0, 1, 0),
+                       FreeCAD.Vector(-1, 0, 0)), "cell": None}
 viewOrder = ["Top", "Right", "Left", "Front", "Back", "Bottom"]
 
+def isLink(o):
+    return o.TypeId == "App::Link"
+
+
+def isBody(o):
+    return o.TypeId == "PartDesign::Body"
+
+
+def getRoot(o):
+    root = o
+
+    while isLink(root):
+        root = root.LinkedObject
+
+    return root
+
+def getBodies(part):
+    bodies = []
+
+    for o in part.Group:
+        root = getRoot(o)
+
+        if not isBody(root) or not hasattr(root, 'Schnittliste_Ansichten'):
+            continue
+
+        bodies.append(root)
+
+    return bodies
 
 def getDimensions(body):
     bb = body.Shape.BoundBox
@@ -62,8 +91,10 @@ def getViewData(viewName):
         return (frontConfig.copy(), "Vorne")
     elif viewName == "Bottom":
         return (bottomConfig.copy(), "Unten")
+    elif viewName == "Back":
+        return (backConfig.copy(), "Hinten")
 
-    raise "View " + viewName + " does not exist"
+    raise ValueError("View " + viewName + " does not exist")
 
 
 def nextCell(cell):
@@ -79,13 +110,15 @@ def nextCell(cell):
 
 
 class CutPage:
-    def __init__(self, body):
-        template = doc.addObject(
+    def __init__(self, body, page_name):
+        self.doc = body.Document
+
+        template = self.doc.addObject(
             'TechDraw::DrawSVGTemplate', body.Name + '_ZuschnittTemplate')
         template.Template = FreeCAD.getHomePath(
         ) + "/data/Mod/TechDraw/Templates/A4_Portrait_blank.svg"
 
-        self.page = doc.addObject('TechDraw::DrawPage', body.Name+'_Zuschnitt')
+        self.page = self.doc.addObject('TechDraw::DrawPage', page_name)
         self.page.Template = template
         self.body = body
         self.basename = body.Name
@@ -104,6 +137,9 @@ class CutPage:
 
     def addViews(self, viewNames):
         sortedViews = viewNames.copy()
+        if len(sortedViews) == 0:
+            sortedViews.extend(['Top', 'Right', 'Left'])
+        
         sortedViews.sort(key=lambda v: viewOrder.index(v))
 
         cell = (0, 0)
@@ -121,7 +157,7 @@ class CutPage:
             self.alignView(view, cellDimensions)
 
     def createView(self, body, direction, scale, perspective = False):
-        view = doc.addObject('TechDraw::DrawViewPart',
+        view = self.doc.addObject('TechDraw::DrawViewPart',
                              self.basename + '_Overview')
         self.page.addView(view)
 
@@ -150,18 +186,18 @@ class CutPage:
         text = [name, 'x {}'.format(count)]
         print(cellDimensions)
 
-        annotation = doc.addObject(
+        annotation = self.doc.addObject(
             'TechDraw::DrawViewAnnotation', self.basename + '_CountAndName')
         self.page.addView(annotation)
 
         annotation.TextSize = '5 mm'
-        annotation.MaxWidth = '20 mm'
+        annotation.MaxWidth = 20
         annotation.X = '{} mm'.format(cellDimensions[0] + 40)
         annotation.Y = '{} mm'.format(cellDimensions[1] + 15)
         annotation.Text = text
         annotation.TextStyle = "Bold"
 
-        doc.recompute()
+        self.doc.recompute()
 
     # (x, y)
     # x = Midpoint of the cell
@@ -185,8 +221,22 @@ class CutPage:
 
 
 # Start of script
-body = doc.findObjects('PartDesign::Body')[0]
-page = CutPage(body)
-page.addOverview()
-page.addViews(body.Schnittliste_Ansichten)
-page.page.KeepUpdated = True
+parentDoc = FreeCAD.ActiveDocument
+parts = parentDoc.findObjects('App::Part')
+for part in parts:
+    bodies = getBodies(part)
+  
+    for body in bodies:
+        page_name = body.Name+'_Zuschnitt'
+
+        # Delete page if it already exists. We create a new one
+        if body.Document.getObject(page_name) is not None:
+            print('Page already exists. Skipping ' + body.Label)
+            continue
+        
+        print(body.Label)
+
+        page = CutPage(body, page_name)
+        page.addOverview()
+        page.addViews(body.Schnittliste_Ansichten)
+        page.page.KeepUpdated = True

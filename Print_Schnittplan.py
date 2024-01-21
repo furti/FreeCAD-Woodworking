@@ -20,9 +20,8 @@ def getRoot(o):
     return root
 
 
-def getBodies():
+def getBodies(part):
     bodies = []
-    part = FreeCAD.ActiveDocument.findObjects("App::Part")[0]
 
     for o in part.Group:
         root = getRoot(o)
@@ -55,25 +54,32 @@ def populateCutlist(bodies):
         if cutlist is not None:
             body["cutlist"] = cutlist
 
-
+# Script starts here
 documentDir = os.path.dirname(FreeCAD.ActiveDocument.FileName)
 baseDir = os.path.join(documentDir, "Plaene")
-tmpDir = os.path.join(baseDir, "tmp")
 
-if not os.path.exists(tmpDir):
-    os.makedirs(tmpDir)
+parts = FreeCAD.ActiveDocument.findObjects('App::Part')
+for part in parts:
+    tmpDir = os.path.join(baseDir, "tmp", part.Label)
+    if not os.path.exists(tmpDir):
+        os.makedirs(tmpDir)
+    
+    bodies = getBodies(part)
 
-bodies = getBodies()
-populateCutlist(bodies)
+    if len(bodies) == 0:
+        continue
 
-print("exporting pages")
-for body in bodies:
-    if "cutlist" in body:
-        file = os.path.join(tmpDir, body["name"] + ".pdf")
-        TechDrawGui.exportPageAsPdf(body["cutlist"], file)
+    populateCutlist(bodies)
 
-wildcard = os.path.join(tmpDir, "*.pdf")
-outputFile = os.path.join(baseDir, "Schnittliste.pdf")
-cmd = 'pdftk "' + wildcard + '" cat output "' + outputFile + '"'
-print("Execute the following command to merge the pages")
-print(cmd)
+    print("exporting pages")
+    for body in bodies:
+        if "cutlist" in body:
+            file = os.path.join(tmpDir, body["name"] + ".pdf")
+            TechDrawGui.exportPageAsPdf(body["cutlist"], file)
+
+    wildcard = os.path.join(tmpDir, "*.pdf")
+    outputFile = os.path.join(baseDir, part.Label + "_Schnittliste.pdf")
+    cmd = 'pdftk "' + wildcard + '" cat output "' + outputFile + '"'
+    print("Execute the following command to merge the pages")
+    print(cmd)
+    print()
