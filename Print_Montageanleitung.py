@@ -6,7 +6,7 @@ import shutil
 
 def getPages():
     pages = []
-    group = FreeCAD.ActiveDocument.findObjects("App::DocumentObjectGroup")[0]
+    group = FreeCAD.ActiveDocument.findObjects(Type = "App::DocumentObjectGroup", Label="Montageanleitung")[0]
 
     for o in group.Group:
         if o.TypeId == "TechDraw::DrawPage":
@@ -32,7 +32,7 @@ for page in pages:
     TechDrawGui.exportPageAsPdf(page, file)
 
 wildcard = os.path.join(tmpDir, "*.pdf")
-outputFile = os.path.join(baseDir, "Montageanleitung.pdf")
+outputFile = os.path.join(baseDir, FreeCAD.ActiveDocument.Name + "_Montage.pdf")
 cmd = 'pdftk "' + wildcard + '" cat output "' + outputFile + '"'
 print("Execute the following command to merge the pages")
 print(cmd)
