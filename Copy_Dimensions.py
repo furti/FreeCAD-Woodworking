@@ -2,8 +2,19 @@ import FreeCAD
 import FreeCADGui
 from PySide2 import QtWidgets
 
+def isLink(o):
+  return o.TypeId == 'App::Link'
+
+def getRoot(o):
+  root = o
+  
+  while isLink(root):
+   root = root.LinkedObject
+  
+  return root
+
 selection = FreeCADGui.Selection.getSelection()
-source_object = selection[0].LinkedObject
+source_object = getRoot(selection[0])
 source_doc = source_object.Document
 others = selection[1:]
 
@@ -57,7 +68,7 @@ if copy_string and ok:
   parts = copy_string.split(" ")
 
   for o in others:
-    object_doc = o.LinkedObject.Document
+    object_doc = getRoot(o).Document
     sync(object_doc, parts)
 
 
