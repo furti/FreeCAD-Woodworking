@@ -1,9 +1,17 @@
 import FreeCAD
 import FreeCADGui
+from PySide2 import QtWidgets
 
 selection = FreeCADGui.Selection.getSelection()
-first_doc = selection[0].LinkedObject.Document
+source_object = selection[0].LinkedObject
+source_doc = source_object.Document
 others = selection[1:]
+
+# source_pad =
+# source_sketch = 
+copy_string, ok = QtWidgets.QInputDialog.getText(QtWidgets.QApplication.activeWindow(), "Sync Dimensions",
+                                     f"L={source_object.Laenge}; B={source_object.Breite}; D={source_object.Staerke};", QtWidgets.QLineEdit.Normal,
+                                     "LL BB DD")
 
 def getExpression(o, expression_name):
   if o.ExpressionEngine is None:
@@ -15,28 +23,41 @@ def getExpression(o, expression_name):
   
   return None
 
-def syncProperty(source, target, property_name):
-  expression = getExpression(source, property_name)
+def extract_property(doc, copy_property):
+  match copy_property:
+    case 'L':
+      return (doc.getObject('Sketch'), '.Constraints.Laenge', 'Laenge')
+    case 'B':
+      return (doc.getObject('Sketch'), '.Constraints.Breite', 'Breite')
+    case 'D':
+      return (doc.getObject('Pad'), 'Length', 'Staerke')
+
+def get_source_value(copy_part):
+  expression_and_property = extract_property(source_doc, copy_part[0])
+  
+  expression = getExpression(expression_and_property[0], expression_and_property[1])
 
   if expression is None:
-    target[property_name] = source[property_name]
+    return ('static', source_object[expression_and_property[2]])
   else:
-    target.setExpression(property_name, expression)
+    return ('expression', expression)
 
-def syncPad(doc):
-  source_pad = first_doc.getObject('Pad')
-  target_pad = doc.getObject('Pad')
 
-  syncProperty(source_pad, target_pad, 'Length')
+def sync(doc, parts):
+  for copy_part in parts:
+    source_value = get_source_value(copy_part)
+    target_property = extract_property(doc, copy_part[1])
+    
+    if source_value[0] == 'expression':
+      target_property[0].setExpression(target_property[1], source_value[1])
+    else:
+      raise ValueError(f'{source_value[0]} not supported yet')
 
-def syncSketch(doc):
-  source_sketch = first_doc.getObject('Sketch')
-  target_sketch = doc.getObject('Sketch')
+if copy_string and ok:
+  parts = copy_string.split(" ")
 
-  syncProperty(source_sketch, target_sketch, '.Constraints.Laenge')
-  syncProperty(source_sketch, target_sketch, '.Constraints.Breite')
+  for o in others:
+    object_doc = o.LinkedObject.Document
+    sync(object_doc, parts)
 
-for o in others:
-  object_doc = o.LinkedObject.Document
-  syncPad(object_doc)
-  syncSketch(object_doc)
+
