@@ -9,7 +9,7 @@ import Sketcher
 def getPlane(direction):
   if direction == 0 or direction == 2:
     return document.getObject('XZ_Plane')
-  if direction == 1 or direction == 2:
+  if direction == 1 or direction == 3:
     return document.getObject('YZ_Plane')
   
   return document.getObject('XY_Plane')
