@@ -55,8 +55,11 @@ guidoc = FreeCADGui.getDocument(name)
 doc.saveAs(documentLocation)
 
 # 3. Link masse spreadsheet
-doc.addObject('App::Link', 'Masse').setLink(FreeCAD.getDocument('Masse').Spreadsheet)
-doc.recompute(None,True,True)
+try:
+  doc.addObject('App::Link', 'Masse').setLink(FreeCAD.getDocument('Masse').Spreadsheet)
+  doc.recompute(None,True,True)
+except NameError:
+  print('Masse Spreadsheet not linked. Document not found')
 
 # 4. Create Part
 doc.addObject('App::Part', name)

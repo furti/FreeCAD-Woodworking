@@ -227,6 +227,11 @@ for part in parts:
     bodies = getBodies(part)
   
     for body in bodies:
+        view_names = body.Schnittliste_Ansichten
+        
+        if 'None' in view_names:
+            continue
+
         page_name = body.Name+'_Zuschnitt'
 
         # Delete page if it already exists. We create a new one
@@ -238,5 +243,5 @@ for part in parts:
 
         page = CutPage(body, page_name)
         page.addOverview()
-        page.addViews(body.Schnittliste_Ansichten)
+        page.addViews(view_names)
         page.page.KeepUpdated = True

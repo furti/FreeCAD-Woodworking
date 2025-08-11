@@ -115,4 +115,7 @@ for part in parts:
 	bodies = getBodies(part)
 	groupedBodies = groupBodies(bodies)
 	nameBodies(groupedBodies)
+  
+	iterationCount = 1
+	actualIndex = 0
 
