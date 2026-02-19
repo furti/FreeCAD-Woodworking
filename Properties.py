@@ -38,3 +38,9 @@ for o in objects:
     
     if not hasattr(root_object, "Einzelpreis"):
         root_object.addProperty("App::PropertyFloat", "Einzelpreis", "Info", "Einzelpreis")
+    
+    if not hasattr(root_object, "Typ"):
+        root_object.addProperty("App::PropertyString", "Typ", "Info", "Typ")
+    
+    if not hasattr(root_object, "Url"):
+        root_object.addProperty("App::PropertyString", "Url", "Info", "Url")

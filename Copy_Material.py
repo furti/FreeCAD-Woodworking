@@ -12,6 +12,10 @@ def getRoot(o):
   
   return root
 
+def copy_property(target, source,  property_name):
+  if property_name in dir(source):
+    setattr(target, property_name, getattr(source, property_name))
+
 selection = FreeCADGui.Selection.getSelection()
 source_object = getRoot(selection[0])
 source_view_object = source_object.ViewObject
@@ -25,10 +29,9 @@ for o in others:
 
   view_object = object.ViewObject
   
-  object.Typ = source_object.Typ
-  object.Url = source_object.Url
-  object.Abrechnung_Art = source_object.Abrechnung_Art
-  object.Einzelpreis = source_object.Einzelpreis
+  copy_property(object, source_object, 'Typ')
+  copy_property(object, source_object, 'Url')
+  copy_property(object, source_object, 'Abrechnung_Art')
+  copy_property(object, source_object, 'Einzelpreis')
 
-  view_object.ShapeColor = source_view_object.ShapeColor
-  view_object.Transparency = source_view_object.Transparency
+  view_object.ShapeAppearance = source_view_object.ShapeAppearance

@@ -100,7 +100,7 @@ tip = body.Tip
 body.newObject('Sketcher::SketchObject', 'Loecher_Sketch')
 sketch = document.ActiveObject
 
-sketch.Support = (getPlane(direction),[''])
+sketch.AttachmentSupport = (getPlane(direction),[''])
 sketch.MapMode = 'FlatFace'
 document.recompute()
 

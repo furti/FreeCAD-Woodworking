@@ -7,31 +7,45 @@ import Part
 from PySide2 import QtWidgets
 import os
 
-def create_board(documentLocation, name, currentDoc):
-  # 2. Create Document and save it
-  FreeCAD.newDocument(name)
-  doc = FreeCAD.getDocument(name)
-  guidoc = FreeCADGui.getDocument(name)
-  doc.saveAs(documentLocation)
+def ensure_board_group(doc):
+  name = 'Platten'
+  groups = doc.findObjects('App::DocumentObjectGroup', Label=name)
+
+  if len(groups) >= 1:
+    return groups[0]
+  
+  doc.addObject('App::DocumentObjectGroup', name)
+  group = doc.findObjects('App::DocumentObjectGroup', Name=name)[0]
+  group.Label = name
+
+  return group
+
+def create_board(name, currentDoc):
+  # 1. Create Document and save it
+  doc = currentDoc
+  guidoc = FreeCADGui.getDocument(doc)
 
   # 3. Link masse spreadsheet
-  try:
-    doc.addObject('App::Link', 'Masse').setLink(FreeCAD.getDocument('Masse').Spreadsheet)
-    doc.recompute(None,True,True)
-  except NameError:
-    print('Masse Spreadsheet not linked. Document not found')
+  #try:
+  #  doc.addObject('App::Link', 'Masse').setLink(FreeCAD.getDocument('Masse').Spreadsheet)
+  #  doc.recompute(None,True,True)
+  #except NameError:
+  #  print('Masse Spreadsheet not linked. Document not found')
 
   # 4. Create Object
+  print('Adding body ' + name)
   doc.addObject('PartDesign::Body', name)
   body = doc.getObject(name)
-  body.newObject('Sketcher::SketchObject', 'Sketch')
-  sketch = doc.getObject('Sketch')
-  sketch.Support = (doc.getObject('XY_Plane'),[''])
+
+  sketchName = name +'_Sketch'
+  body.newObject('Sketcher::SketchObject', sketchName)
+  sketch = doc.getObject(sketchName)
+  sketch.AttachmentSupport = (doc.getObject('XY_Plane'),[''])
   sketch.MapMode = 'FlatFace'
   doc.recompute()
 
   # 5. Customize Sketch
-  guidoc.setEdit(body,0,'Sketch.')
+  guidoc.setEdit(body,0, sketchName+'.')
 
   geoList = []
   geoList.append(Part.LineSegment(FreeCAD.Vector(0,0,0), FreeCAD.Vector(1000,0,0)))
@@ -62,8 +76,9 @@ def create_board(documentLocation, name, currentDoc):
   doc.recompute()
 
   # 6. Pad sketch
-  body.newObject('PartDesign::Pad', 'Pad')
-  pad = doc.getObject('Pad')
+  padName=name+'_Pad'
+  body.newObject('PartDesign::Pad', padName)
+  pad = doc.getObject(padName)
   pad.Profile = sketch
   pad.Length = 10.0
 
@@ -74,9 +89,9 @@ def create_board(documentLocation, name, currentDoc):
   body.addProperty("App::PropertyLength", "Laenge", "Info", "Laenge")
   body.addProperty("App::PropertyLength", "Staerke", "Info", "Staerke")
 
-  body.setExpression('Breite', u'Sketch.Constraints.Breite')
-  body.setExpression('Laenge', u'Sketch.Constraints.Laenge')
-  body.setExpression('Staerke', u'Pad.Length')
+  body.setExpression('Breite', sketchName+u'.Constraints.Breite')
+  body.setExpression('Laenge', sketchName+u'.Constraints.Laenge')
+  body.setExpression('Staerke', padName+u'.Length')
 
   # Set drawing properties
   body.addProperty("App::PropertyStringList", "Schnittliste_Ansichten", "Drawing", "Schnittliste_Ansichten")
@@ -87,16 +102,19 @@ def create_board(documentLocation, name, currentDoc):
   sketch.Visibility = False
   doc.recompute()
 
+  group = ensure_board_group(doc)
+  group.addObject(body)
+
   # Link into the parent doc
-  currentDoc.addObject('App::Link', name).setLink(body)
+  link = currentDoc.addObject('App::Link', name)
+  link.setLink(body)
   currentDoc.recompute(None,True,True)
 
-  return currentDoc.getObject(name)
+  return link
 
 if __name__ == '__main__':
   currentDoc = FreeCAD.ActiveDocument
-  # 1. Document Location
-  documentLocation = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QApplication.activeWindow(), 'Save as', '', 'Image Files (*.FCStd)')[0]
-  name = os.path.splitext(os.path.basename(documentLocation))[0]
+  name, ok = QtWidgets.QInputDialog.getText(QtWidgets.QApplication.activeWindow(), 'Name', 'Name')
 
-  create_board(documentLocation, name, currentDoc)
+  if ok and name:
+    create_board(name, currentDoc)

@@ -29,7 +29,7 @@ tip = body.Tip
 body.newObject('Sketcher::SketchObject', 'Fraesung_Sketch')
 sketch = document.ActiveObject
 
-sketch.Support = (document.getObject('XY_Plane'),[''])
+sketch.AttachmentSupport = (document.getObject('XY_Plane'),[''])
 sketch.MapMode = 'FlatFace'
 document.recompute()
 

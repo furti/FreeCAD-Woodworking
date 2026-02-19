@@ -111,11 +111,9 @@ def nameBodies(groups):
 
 # Start of script
 parts = doc.findObjects('App::Part')
+bodies = []
 for part in parts:
-	bodies = getBodies(part)
-	groupedBodies = groupBodies(bodies)
-	nameBodies(groupedBodies)
-  
-	iterationCount = 1
-	actualIndex = 0
+	bodies.extend(getBodies(part))
 
+groupedBodies = groupBodies(bodies)
+nameBodies(groupedBodies)
