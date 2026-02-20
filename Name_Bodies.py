@@ -24,6 +24,9 @@ def isLink(o):
 def isBody(o):
   return o.TypeId == 'PartDesign::Body'
 
+def isPart(o):
+  return o.TypeId == 'App::Part'
+
 def getRoot(o):
   root = o
   
@@ -109,8 +112,20 @@ def nameBodies(groups):
       body.Planname = name
       body.Anzahl = len(group)
 
+def findParts(doc):
+  parts = []
+
+  for o in doc.Objects:
+    root = getRoot(o)
+    
+    if isPart(root):
+      parts.append(root)
+
+  return parts
+
 # Start of script
-parts = doc.findObjects('App::Part')
+parts = findParts(doc)
+
 bodies = []
 for part in parts:
 	bodies.extend(getBodies(part))

@@ -41,7 +41,6 @@ def getBodies(part):
         if not body_number in body_numbers:
             bodies.append(root)
             body_numbers.append(body_number)
-            print(body_numbers)
 
     return bodies
 
@@ -115,8 +114,7 @@ class CutPage:
         cellDimensions = self.cellDimensions()
         self.incrementCell()
         self.alignView(view, cellDimensions)
-        self.printCountAndName(
-            body.Name, body.Anzahl, body.Planname, (view.X.Value, view.Y.Value))
+        self.printData(body, (view.X.Value, view.Y.Value))
 
     def createView(self, body, direction, scale, perspective = False):
         view = self.doc.addObject('TechDraw::DrawViewPart',
@@ -144,23 +142,29 @@ class CutPage:
 
         view.recompute()
 
-    def printCountAndName(self, base_name, count, name, cellDimensions):
-        text = [name, 'x {}'.format(count)]
-        print(cellDimensions)
+    def printData(self, body, cellDimensions):
+        base_name = body.Name
+        count = body.Anzahl
+        name = body.Planname
+
+        text = [f'{name} x {count}']
+
+        if hasattr(body, 'Laenge') and hasattr(body, 'Breite') and hasattr(body, 'Staerke'):
+            text.append(f'{body.Laenge}x{body.Breite}x{body.Staerke}')
 
         annotation = self.doc.addObject(
             'TechDraw::DrawViewAnnotation', base_name + '_CountAndName')
         self.page.addView(annotation)
 
         annotation.TextSize = '5 mm'
-        annotation.MaxWidth = 20
-        annotation.X = '{} mm'.format(cellDimensions[0] + 40)
-        annotation.Y = '{} mm'.format(cellDimensions[1] + 15)
+        annotation.MaxWidth = 85
+        annotation.X = '{} mm'.format(cellDimensions[0])
+        annotation.Y = '{} mm'.format(cellDimensions[1] - 20)
         annotation.Text = text
         annotation.TextStyle = "Bold"
 
         self.doc.recompute()
-
+    
     # (x, y)
     # x = Midpoint of the cell
     # y = top of the cell
